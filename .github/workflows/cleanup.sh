@@ -9,6 +9,10 @@ echo "Starting cleanup process..."
 DEFAULT_VPC_ID=$(aws ec2 describe-vpcs --query "Vpcs[?IsDefault].VpcId" --output text)
 echo "Default VPC ID: $DEFAULT_VPC_ID"
 
+# Get the CIDR block for the default VPC
+DEFAULT_VPC_CIDR=$(aws ec2 describe-vpcs --vpc-ids ${DEFAULT_VPC_ID} --query "Vpcs[].CidrBlock" --output text)
+echo "Default VPC CIDR Block: $DEFAULT_VPC_CIDR"
+
 # Identify the default route table
 DEFAULT_ROUTE_TABLE_ID=$(aws ec2 describe-route-tables --filters "Name=association.main,Values=true" --query "RouteTables[].RouteTableId" --output text)
 echo "Default Route Table ID: $DEFAULT_ROUTE_TABLE_ID"
@@ -53,15 +57,15 @@ if [ -n "$ROUTE_TABLE_IDS" ]; then
       echo "No subnets associated with route table $ROUTE_TABLE_ID."
     fi
 
-    # Remove all routes
-    ROUTES=$(aws ec2 describe-route-tables --route-table-ids ${ROUTE_TABLE_ID} --query "RouteTables[].Routes[?DestinationCidrBlock != '0.0.0.0/0'].DestinationCidrBlock" --output text)
+    # Remove all non-local routes
+    ROUTES=$(aws ec2 describe-route-tables --route-table-ids ${ROUTE_TABLE_ID} --query "RouteTables[].Routes[?DestinationCidrBlock != '${DEFAULT_VPC_CIDR}'].DestinationCidrBlock" --output text)
     if [ -n "$ROUTES" ]; then
       for ROUTE in $ROUTES; do
         echo "Deleting route $ROUTE from route table $ROUTE_TABLE_ID"
         aws ec2 delete-route --route-table-id ${ROUTE_TABLE_ID} --destination-cidr-block $ROUTE
       done
     else
-      echo "No routes found in route table $ROUTE_TABLE_ID."
+      echo "No non-local routes found in route table $ROUTE_TABLE_ID."
     fi
 
     # Delete route table
