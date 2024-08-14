@@ -44,6 +44,7 @@ fi
 # Delete all route tables, except the default (main) route table
 ROUTE_TABLE_IDS=$(aws ec2 describe-route-tables --query "RouteTables[?RouteTableId != '${DEFAULT_ROUTE_TABLE_ID}'].RouteTableId" --output text)
 if [ -n "$ROUTE_TABLE_IDS" ]; then
+  echo "$ROUTE_TABLE_IDS"
   for ROUTE_TABLE_ID in $ROUTE_TABLE_IDS; do
     # Disassociate route table from subnets
     ASSOCIATED_SUBNET_IDS=$(aws ec2 describe-route-tables --route-table-ids ${ROUTE_TABLE_ID} --query "RouteTables[].Associations[].SubnetId" --output text)
