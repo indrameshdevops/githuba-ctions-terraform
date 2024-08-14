@@ -59,8 +59,8 @@ resource "aws_internet_gateway" "dev_igw" {
 }
 
 resource "aws_instance" "web" {
-  ami           = "ami-0c55b159cbfafe1f0"
-  instance_type = "t2.micro"
+  ami           = "ami-041e2ea9402c46c32"
+  instance_type = "t3.micro"
   subnet_id     = aws_subnet.public_subnet.id
   associate_public_ip_address = true
 
@@ -70,10 +70,11 @@ resource "aws_instance" "web" {
 }
 
 resource "aws_instance" "mysql" {
-  count         = 5
+  count         = 3
   ami           = "ami-041e2ea9402c46c32"
   instance_type = "t3.small"
   subnet_id     = aws_subnet.private_subnet.id
+  associate_public_ip_address = false
 
   tags = {
     Name = "${var.env}-MySQLServer-${count.index + 1}"
