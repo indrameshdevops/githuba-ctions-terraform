@@ -71,8 +71,8 @@ resource "aws_instance" "web" {
 
 resource "aws_instance" "mysql" {
   count         = 5
-  ami           = "ami-0c55b159cbfafe1f0"
-  instance_type = "t2.micro"
+  ami           = "ami-041e2ea9402c46c32"
+  instance_type = "t3.small"
   subnet_id     = aws_subnet.private_subnet.id
 
   tags = {
