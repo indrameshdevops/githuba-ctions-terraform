@@ -13,7 +13,7 @@ echo "Default VPC ID: $DEFAULT_VPC_ID"
 DEFAULT_VPC_CIDR=$(aws ec2 describe-vpcs --vpc-ids ${DEFAULT_VPC_ID} --query "Vpcs[].CidrBlock" --output text)
 echo "Default VPC CIDR Block: $DEFAULT_VPC_CIDR"
 
-# Identify the default route table
+# Identify the default route table (main route table)
 DEFAULT_ROUTE_TABLE_ID=$(aws ec2 describe-route-tables --filters "Name=association.main,Values=true" --query "RouteTables[].RouteTableId" --output text)
 echo "Default Route Table ID: $DEFAULT_ROUTE_TABLE_ID"
 
@@ -41,7 +41,7 @@ else
   echo "No subnets found."
 fi
 
-# Delete all route tables, except default route table
+# Delete all route tables, except the default (main) route table
 ROUTE_TABLE_IDS=$(aws ec2 describe-route-tables --query "RouteTables[?RouteTableId != '${DEFAULT_ROUTE_TABLE_ID}'].RouteTableId" --output text)
 if [ -n "$ROUTE_TABLE_IDS" ]; then
   for ROUTE_TABLE_ID in $ROUTE_TABLE_IDS; do
