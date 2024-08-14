@@ -1,7 +1,26 @@
-#!/bin/bash
+name: Cleanup AWS Resources
 
-# Terminate EC2 instances
-aws ec2 describe-instances --query "Reservations[].Instances[].InstanceId" --output text | xargs -I {} aws ec2 terminate-instances --instance-ids {}
+on:
+  workflow_dispatch:
+    # Manual trigger
 
-# Delete VPCs
-aws ec2 describe-vpcs --query "Vpcs[].VpcId" --output text | xargs -I {} aws ec2 delete-vpc --vpc-id {}
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up AWS CLI
+      run: sudo apt-get install -y awscli
+
+    - name: Make cleanup script executable
+      run: chmod +x ./cleanup.sh
+
+    - name: Run cleanup script
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: us-east-1  # Update as needed
+      run: ./cleanup.sh
