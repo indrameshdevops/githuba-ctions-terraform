@@ -16,11 +16,11 @@ jobs:
         run: sudo apt-get install -y awscli
 
       - name: Make cleanup script executable
-        run: chmod +x ./cleanup.sh
+        run: chmod +x .github/workflows/cleanup.sh
 
       - name: Run cleanup script
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: us-east-1  # Update as needed
-        run: ./cleanup.sh
+        run: .github/workflows/cleanup.sh
