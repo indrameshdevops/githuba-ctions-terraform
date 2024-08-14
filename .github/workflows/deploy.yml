@@ -52,6 +52,7 @@ jobs:
       - name: Set up environment variables
         run: echo "API_KEY=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
 
+
       - name: Access environment variable
         run: echo "API Key is $API_KEY"
 
