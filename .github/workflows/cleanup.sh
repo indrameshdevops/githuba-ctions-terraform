@@ -7,8 +7,11 @@ echo "Starting cleanup process..."
 
 # Identify the default VPC
 DEFAULT_VPC_ID=$(aws ec2 describe-vpcs --query "Vpcs[?IsDefault].VpcId" --output text)
-
 echo "Default VPC ID: $DEFAULT_VPC_ID"
+
+# Identify the default route table
+DEFAULT_ROUTE_TABLE_ID=$(aws ec2 describe-route-tables --filters "Name=association.main,Values=true" --query "RouteTables[].RouteTableId" --output text)
+echo "Default Route Table ID: $DEFAULT_ROUTE_TABLE_ID"
 
 # Terminate all EC2 instances
 INSTANCE_IDS=$(aws ec2 describe-instances --query "Reservations[].Instances[].InstanceId" --output text)
@@ -23,7 +26,7 @@ fi
 echo "Waiting for instances to be terminated..."
 aws ec2 wait instance-terminated --instance-ids $INSTANCE_IDS
 
-# Delete all subnets, except those in the default VPC
+# Delete all subnets, except default subnets
 SUBNET_IDS=$(aws ec2 describe-subnets --query "Subnets[?VpcId != '${DEFAULT_VPC_ID}'].SubnetId" --output text)
 if [ -n "$SUBNET_IDS" ]; then
   for SUBNET_ID in $SUBNET_IDS; do
@@ -34,8 +37,8 @@ else
   echo "No subnets found."
 fi
 
-# Delete all route tables, except those in the default VPC
-ROUTE_TABLE_IDS=$(aws ec2 describe-route-tables --query "RouteTables[?VpcId != '${DEFAULT_VPC_ID}'].RouteTableId" --output text)
+# Delete all route tables, except default route table
+ROUTE_TABLE_IDS=$(aws ec2 describe-route-tables --query "RouteTables[?RouteTableId != '${DEFAULT_ROUTE_TABLE_ID}'].RouteTableId" --output text)
 if [ -n "$ROUTE_TABLE_IDS" ]; then
   for ROUTE_TABLE_ID in $ROUTE_TABLE_IDS; do
     echo "Deleting route table: $ROUTE_TABLE_ID"
