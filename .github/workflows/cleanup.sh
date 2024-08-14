@@ -41,45 +41,49 @@ else
   echo "No subnets found."
 fi
 
-# Delete all route tables, except the default (main) route table
-ROUTE_TABLE_IDS=$(aws ec2 describe-route-tables --query "RouteTables[?RouteTableId != '${DEFAULT_ROUTE_TABLE_ID}'].RouteTableId" --output text)
-if [ -n "$ROUTE_TABLE_IDS" ]; then
-  echo "$ROUTE_TABLE_IDS"
-  for ROUTE_TABLE_ID in $ROUTE_TABLE_IDS; do
-    aws ec2 describe-route-tables --route-table-ids rtb-0d5e35a1dfc528762
+# Retrieve all route tables
+ALL_ROUTE_TABLES=$(aws ec2 describe-route-tables --query "RouteTables[].{ID:RouteTableId,Main:Associations[0].Main}" --output json)
 
-    # Disassociate route table from subnets
-    ASSOCIATED_SUBNET_IDS=$(aws ec2 describe-route-tables --route-table-ids ${ROUTE_TABLE_ID} --query "RouteTables[].Associations[].SubnetId" --output text)
-    if [ -n "$ASSOCIATED_SUBNET_IDS" ]; then
-      for SUBNET_ID in $ASSOCIATED_SUBNET_IDS; do
-        echo "Disassociating route table $ROUTE_TABLE_ID from subnet $SUBNET_ID"
-        ASSOCIATION_ID=$(aws ec2 describe-route-tables --route-table-ids ${ROUTE_TABLE_ID} --query "RouteTables[].Associations[?SubnetId=='${SUBNET_ID}'].AssociationId" --output text)
-        aws ec2 disassociate-route-table --association-id $ASSOCIATION_ID
-      done
-    else
-      echo "No subnets associated with route table $ROUTE_TABLE_ID."
-    fi
+# Process each route table
+for ROW in $(echo "${ALL_ROUTE_TABLES}" | jq -c '.[]'); do
+  ROUTE_TABLE_ID=$(echo "$ROW" | jq -r '.ID')
+  IS_MAIN=$(echo "$ROW" | jq -r '.Main')
 
+  # Skip the default (main) route table
+  if [ "$IS_MAIN" = "true" ]; then
+    echo "Skipping main route table: $ROUTE_TABLE_ID"
+    continue
+  fi
 
+  echo "Processing route table: $ROUTE_TABLE_ID"
 
-    # Remove all non-local routes
-    ROUTES=$(aws ec2 describe-route-tables --route-table-ids ${ROUTE_TABLE_ID} --query "RouteTables[].Routes[?DestinationCidrBlock != '${DEFAULT_VPC_CIDR}'].DestinationCidrBlock" --output text)
-    if [ -n "$ROUTES" ]; then
-      for ROUTE in $ROUTES; do
-        echo "Deleting route $ROUTE from route table $ROUTE_TABLE_ID"
-        aws ec2 delete-route --route-table-id ${ROUTE_TABLE_ID} --destination-cidr-block $ROUTE
-      done
-    else
-      echo "No non-local routes found in route table $ROUTE_TABLE_ID."
-    fi
+  # Disassociate route table from subnets
+  ASSOCIATED_SUBNET_IDS=$(aws ec2 describe-route-tables --route-table-ids ${ROUTE_TABLE_ID} --query "RouteTables[].Associations[].SubnetId" --output text)
+  if [ -n "$ASSOCIATED_SUBNET_IDS" ]; then
+    for SUBNET_ID in $ASSOCIATED_SUBNET_IDS; do
+      echo "Disassociating route table $ROUTE_TABLE_ID from subnet $SUBNET_ID"
+      ASSOCIATION_ID=$(aws ec2 describe-route-tables --route-table-ids ${ROUTE_TABLE_ID} --query "RouteTables[].Associations[?SubnetId=='${SUBNET_ID}'].AssociationId" --output text)
+      aws ec2 disassociate-route-table --association-id $ASSOCIATION_ID
+    done
+  else
+    echo "No subnets associated with route table $ROUTE_TABLE_ID."
+  fi
 
-    # Delete route table
-    echo "Deleting route table: $ROUTE_TABLE_ID"
-    aws ec2 delete-route-table --route-table-id $ROUTE_TABLE_ID
-  done
-else
-  echo "No route tables found."
-fi
+  # Remove all non-local routes
+  ROUTES=$(aws ec2 describe-route-tables --route-table-ids ${ROUTE_TABLE_ID} --query "RouteTables[].Routes[?DestinationCidrBlock != '${DEFAULT_VPC_CIDR}'].DestinationCidrBlock" --output text)
+  if [ -n "$ROUTES" ]; then
+    for ROUTE in $ROUTES; do
+      echo "Deleting route $ROUTE from route table $ROUTE_TABLE_ID"
+      aws ec2 delete-route --route-table-id ${ROUTE_TABLE_ID} --destination-cidr-block $ROUTE
+    done
+  else
+    echo "No non-local routes found in route table $ROUTE_TABLE_ID."
+  fi
+
+  # Delete route table
+  echo "Deleting route table: $ROUTE_TABLE_ID"
+  aws ec2 delete-route-table --route-table-id $ROUTE_TABLE_ID
+done
 
 # Delete all network interfaces, except those in the default VPC
 NETWORK_INTERFACE_IDS=$(aws ec2 describe-network-interfaces --query "NetworkInterfaces[?VpcId != '${DEFAULT_VPC_ID}'].NetworkInterfaceId" --output text)
