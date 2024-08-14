@@ -1,9 +1,22 @@
 name: Deploy Infrastructure and Provision
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      env:
+        description: 'Environment name'
+        required: true
+        default: 'dev'
+      vpc_cidr:
+        description: 'VPC CIDR block'
+        required: true
+        default: '10.0.0.0/16'
+      peer_vpc_id:
+        description: 'Peer VPC ID'
+        required: true
+      peer_cidr_block:
+        description: 'Peer VPC CIDR block'
+        required: true
 
 jobs:
   terraform:
@@ -20,9 +33,11 @@ jobs:
           terraform_version: 1.3.0
 
       - name: Terraform Init
+        working-directory: terraform  # Point to the correct directory
         run: terraform init
 
       - name: Terraform Apply
+        working-directory: terraform  # Point to the correct directory
         env:
           TF_VAR_env: ${{ github.event.inputs.env }}
           TF_VAR_vpc_cidr: ${{ github.event.inputs.vpc_cidr }}
