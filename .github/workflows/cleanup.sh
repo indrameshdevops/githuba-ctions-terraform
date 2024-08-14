@@ -1,26 +1,34 @@
-name: Cleanup AWS Resources
+#!/bin/bash
 
-on:
-  workflow_dispatch:
-    # Manual trigger
+set -e
 
-jobs:
-  cleanup:
-    runs-on: ubuntu-latest
+# Print the commands being executed
+set -x
 
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+echo "Starting cleanup process..."
 
-    - name: Set up AWS CLI
-      run: sudo apt-get install -y awscli
+# Terminate all EC2 instances
+INSTANCE_IDS=$(aws ec2 describe-instances --query "Reservations[].Instances[].InstanceId" --output text)
+if [ -n "$INSTANCE_IDS" ]; then
+  echo "Terminating EC2 instances: $INSTANCE_IDS"
+  aws ec2 terminate-instances --instance-ids $INSTANCE_IDS
+else
+  echo "No EC2 instances found."
+fi
 
-    - name: Make cleanup script executable
-      run: chmod +x ./cleanup.sh
+# Wait for instances to be terminated
+echo "Waiting for instances to be terminated..."
+aws ec2 wait instance-terminated --instance-ids $INSTANCE_IDS
 
-    - name: Run cleanup script
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: us-east-1  # Update as needed
-      run: ./cleanup.sh
+# Delete all VPCs
+VPC_IDS=$(aws ec2 describe-vpcs --query "Vpcs[].VpcId" --output text)
+if [ -n "$VPC_IDS" ]; then
+  for VPC_ID in $VPC_IDS; do
+    echo "Deleting VPC: $VPC_ID"
+    aws ec2 delete-vpc --vpc-id $VPC_ID
+  done
+else
+  echo "No VPCs found."
+fi
+
+echo "Cleanup process completed."
