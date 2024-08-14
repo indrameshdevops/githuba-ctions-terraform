@@ -47,17 +47,7 @@ jobs:
           TF_VAR_vpc_cidr: ${{ github.event.inputs.vpc_cidr }}
           TF_VAR_peer_vpc_id: ${{ github.event.inputs.peer_vpc_id }}
           TF_VAR_peer_cidr_block: ${{ github.event.inputs.peer_cidr_block }}
-        run: echo "The secret is ${{ secrets.AWS_ACCESS_KEY_ID  }}"
-
-      - name: Set up environment variables
-        run: echo "API_KEY=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
-
-
-      - name: Access environment variable
-        run: echo "API Key is $API_KEY"
-
-
-#run: terraform apply -auto-approve
+        run: terraform apply -auto-approve
 
     outputs:
       public_ip: ${{ steps.apply.outputs.public_ip }}
