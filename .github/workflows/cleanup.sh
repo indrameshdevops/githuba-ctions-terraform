@@ -41,6 +41,30 @@ fi
 ROUTE_TABLE_IDS=$(aws ec2 describe-route-tables --query "RouteTables[?RouteTableId != '${DEFAULT_ROUTE_TABLE_ID}'].RouteTableId" --output text)
 if [ -n "$ROUTE_TABLE_IDS" ]; then
   for ROUTE_TABLE_ID in $ROUTE_TABLE_IDS; do
+    # Disassociate route table from subnets
+    ASSOCIATED_SUBNET_IDS=$(aws ec2 describe-route-tables --route-table-ids ${ROUTE_TABLE_ID} --query "RouteTables[].Associations[].SubnetId" --output text)
+    if [ -n "$ASSOCIATED_SUBNET_IDS" ]; then
+      for SUBNET_ID in $ASSOCIATED_SUBNET_IDS; do
+        echo "Disassociating route table $ROUTE_TABLE_ID from subnet $SUBNET_ID"
+        ASSOCIATION_ID=$(aws ec2 describe-route-tables --route-table-ids ${ROUTE_TABLE_ID} --query "RouteTables[].Associations[?SubnetId=='${SUBNET_ID}'].AssociationId" --output text)
+        aws ec2 disassociate-route-table --association-id $ASSOCIATION_ID
+      done
+    else
+      echo "No subnets associated with route table $ROUTE_TABLE_ID."
+    fi
+
+    # Remove all routes
+    ROUTES=$(aws ec2 describe-route-tables --route-table-ids ${ROUTE_TABLE_ID} --query "RouteTables[].Routes[?DestinationCidrBlock != '0.0.0.0/0'].DestinationCidrBlock" --output text)
+    if [ -n "$ROUTES" ]; then
+      for ROUTE in $ROUTES; do
+        echo "Deleting route $ROUTE from route table $ROUTE_TABLE_ID"
+        aws ec2 delete-route --route-table-id ${ROUTE_TABLE_ID} --destination-cidr-block $ROUTE
+      done
+    else
+      echo "No routes found in route table $ROUTE_TABLE_ID."
+    fi
+
+    # Delete route table
     echo "Deleting route table: $ROUTE_TABLE_ID"
     aws ec2 delete-route-table --route-table-id $ROUTE_TABLE_ID
   done
