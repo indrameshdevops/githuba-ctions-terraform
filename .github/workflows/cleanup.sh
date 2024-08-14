@@ -46,6 +46,8 @@ ROUTE_TABLE_IDS=$(aws ec2 describe-route-tables --query "RouteTables[?RouteTable
 if [ -n "$ROUTE_TABLE_IDS" ]; then
   echo "$ROUTE_TABLE_IDS"
   for ROUTE_TABLE_ID in $ROUTE_TABLE_IDS; do
+    aws ec2 describe-route-tables --route-table-ids rtb-0d5e35a1dfc528762
+
     # Disassociate route table from subnets
     ASSOCIATED_SUBNET_IDS=$(aws ec2 describe-route-tables --route-table-ids ${ROUTE_TABLE_ID} --query "RouteTables[].Associations[].SubnetId" --output text)
     if [ -n "$ASSOCIATED_SUBNET_IDS" ]; then
@@ -58,7 +60,6 @@ if [ -n "$ROUTE_TABLE_IDS" ]; then
       echo "No subnets associated with route table $ROUTE_TABLE_ID."
     fi
 
-aws ec2 describe-route-tables --route-table-ids rtb-0d5e35a1dfc528762
 
 
     # Remove all non-local routes
