@@ -14,6 +14,9 @@ jobs:
       - name: Install AWS CLI
         run: sudo apt-get install -y awscli
 
+      - name: Make script executable
+        run: chmod +x ./cleanup.sh
+
       - name: Cleanup Resources
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
