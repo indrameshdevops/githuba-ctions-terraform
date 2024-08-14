@@ -58,6 +58,9 @@ if [ -n "$ROUTE_TABLE_IDS" ]; then
       echo "No subnets associated with route table $ROUTE_TABLE_ID."
     fi
 
+aws ec2 describe-route-tables --route-table-ids rtb-0d5e35a1dfc528762
+
+
     # Remove all non-local routes
     ROUTES=$(aws ec2 describe-route-tables --route-table-ids ${ROUTE_TABLE_ID} --query "RouteTables[].Routes[?DestinationCidrBlock != '${DEFAULT_VPC_CIDR}'].DestinationCidrBlock" --output text)
     if [ -n "$ROUTES" ]; then
